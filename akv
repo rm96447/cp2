@@ -1,0 +1,121 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "NomeAKV": {
+        "type": "string",
+        "defaultValue": "gustavo96447",
+        "metadata": {
+          "description": "O nome do Azure Key Vault a ser criado."
+        }
+      },
+      "NomeChave": {
+        "type": "string",
+        "defaultValue": "key96447",
+        "metadata": {
+          "description": "O nome da chave a ser criada."
+        }
+      },
+      "location": {
+        "type": "string",
+        "defaultValue": "eastus",
+        "metadata": {
+          "description": "A localização dos recursos."
+        }
+      },
+      "skuName": {
+        "type": "string",
+        "defaultValue": "standard",
+        "allowedValues": [
+          "standard",
+          "premium"
+        ],
+        "metadata": {
+          "description": "O SKU do Azure Key Vault a ser criado."
+        }
+      },
+      "keyType": {
+        "type": "string",
+        "defaultValue": "EC",
+        "allowedValues": [
+          "EC",
+          "EC-HSM",
+          "RSA",
+          "RSA-HSM"
+        ],
+        "metadata": {
+          "description": "O tipo de chave a ser criada."
+        }
+      },
+      "keyOps": {
+        "type": "array",
+        "defaultValue": ["sign", "verify"],
+        "allowedValues": ["sign", "verify", "wrapKey", "unwrapKey"],
+        "metadata": {
+          "description": "As operações permitidas para a chave a ser criada."
+        }
+      },
+      "keySize": {
+        "type": "int",
+        "defaultValue": 256,
+        "metadata": {
+          "description": "O tamanho da chave em bits a ser criada."
+        }
+      },
+      "curveName": {
+        "type": "string",
+        "defaultValue": "P-256",
+        "allowedValues": ["", "P-256", "P-256K", "P-384", "P-521"],
+        "metadata": {
+          "description": "A curva elíptica da chave a ser criada."
+        }
+      }
+    },
+    "resources": [
+      {
+        "type": "Microsoft.KeyVault/vaults",
+        "apiVersion": "2021-11-01-preview",
+        "name": "[parameters('NomeAKV')]",
+        "location": "[parameters('location')]",
+        "properties": {
+          "accessPolicies": [],
+          "enableRbacAuthorization": true,
+          "enableSoftDelete": true,
+          "softDeleteRetentionInDays": "90",
+          "enabledForDeployment": false,
+          "enabledForDiskEncryption": false,
+          "enabledForTemplateDeployment": false,
+          "tenantId": "[subscription().tenantId]",
+          "sku": {
+            "name": "[parameters('skuName')]",
+            "family": "A"
+          },
+          "networkAcls": {
+            "defaultAction": "Allow",
+            "bypass": "AzureServices"
+          }
+        }
+      },
+      {
+        "type": "Microsoft.KeyVault/vaults/keys",
+        "apiVersion": "2021-11-01-preview",
+        "name": "[format('{0}/{1}', parameters('NomeAKV'), parameters('NomeChave'))]",
+        "properties": {
+          "kty": "[parameters('keyType')]",
+          "keyOps": "[parameters('keyOps')]",
+          "keySize": "[parameters('keySize')]",
+          "curveName": "[parameters('curveName')]"
+        },
+        "dependsOn": [
+          "[resourceId('Microsoft.KeyVault/vaults', parameters('NomeAKV'))]"
+        ]
+      }
+    ],
+    "outputs": {
+      "proxyKey": {
+        "type": "object",
+        "value": "[reference(resourceId('Microsoft.KeyVault/vaults/keys', parameters('NomeAKV'), parameters('NomeChave')))]"
+      }
+    }
+  }
+  
